@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Stations - EV Charging System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .login-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+        }
+        
+        .success {
+            background: #efe;
+            color: #0a0;
+            border: 1px solid #cfc;
+        }
+        
+        .station-list {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .station-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .station-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .station-details {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Add Charging Stations</h1>
+        <p class="subtitle">Setup stations for your EV charging system</p>
+        
+        <div id="loginSection" class="login-section">
+            <h3 style="margin-bottom: 20px; color: #333;">Login First</h3>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" value="admin@test.com" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" value="Admin123!" />
+            </div>
+            <button onclick="login()">Login</button>
+        </div>
+        
+        <div id="stationSection" class="hidden">
+            <div id="message"></div>
+            
+            <div class="form-group">
+                <label>Station Name</label>
+                <input type="text" id="stationName" placeholder="Main Street Station" />
+            </div>
+            
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="stationLocation" placeholder="123 Main St, Downtown" />
+            </div>
+            
+            <div class="form-group">
+                <label>Price Per Hour ($)</label>
+                <input type="number" id="pricePerHour" value="15" step="0.01" />
+            </div>
+            
+            <div class="form-group">
+                <label>Status</label>
+                <select id="isActive">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            
+            <button onclick="addStation()">Add Station</button>
+            
+            <div class="station-list">
+                <h3 style="margin-bottom: 15px; color: #333;">Existing Stations</h3>
+                <div id="stationsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5037/api';
+        let token = '';
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('stationSection').classList.remove('hidden');
+                    loadStations();
+                } else {
+                    showMessage(data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Login error: ' + error.message, 'error');
+            }
+        }
+
+        async function addStation() {
+            const name = document.getElementById('stationName').value;
+            const location = document.getElementById('stationLocation').value;
+            const pricePerHour = parseFloat(document.getElementById('pricePerHour').value);
+            const isActive = document.getElementById('isActive').value === 'true';
+            
+            if (!name || !location) {
+                showMessage('Please fill all fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/stations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name,
+                        location,
+                        pricePerHour,
+                        isActive
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`Station "${name}" added successfully!`, 'success');
+                    document.getElementById('stationName').value = '';
+                    document.getElementById('stationLocation').value = '';
+                    loadStations();
+                } else {
+                    showMessage(data.message || 'Failed to add station', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function loadStations() {
+            try {
+                const response = await fetch(`${API_URL}/stations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const stations = await response.json();
+                
+                const stationsList = document.getElementById('stationsList');
+                if (stations.length === 0) {
+                    stationsList.innerHTML = '<p style="color: #999;">No stations yet. Add one above!</p>';
+                } else {
+                    stationsList.innerHTML = stations.map(station => `
+                        <div class="station-item">
+                            <div class="station-name">${station.name}</div>
+                            <div class="station-details">
+                                📍 ${station.location} | 💰 $${station.pricePerHour}/hr | 
+                                ${station.isActive ? '✅ Active' : '❌ Inactive'}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load stations:', error);
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            setTimeout(() => {
+                messageDiv.className = 'message hidden';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
