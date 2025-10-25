@@ -1,0 +1,17 @@
+{
+  "MongoDb": {
+    "ConnectionString": "",
+    "DatabaseName": "EVChargingDB"
+  },
+  "Jwt": {
+    "Secret": "",
+    "ExpiryHours": 24
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

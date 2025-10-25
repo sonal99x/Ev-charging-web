@@ -1,0 +1,28 @@
+using Backend.Data;
+using MongoDB.Bson;
+using MongoDB.Driver;
+
+var context = new MongoDbContext(configuration);
+var bookingsCollection = context.GetCollection<BsonDocument>("Bookings");
+
+Console.WriteLine("=== ALL BOOKINGS IN DATABASE ===");
+var allDocs = await bookingsCollection.Find(_ => true).ToListAsync();
+Console.WriteLine($"Total bookings: {allDocs.Count}");
+
+foreach (var doc in allDocs)
+{
+    Console.WriteLine($"\nBooking ID: {doc["_id"]}");
+    Console.WriteLine($"UserId Type: {doc.GetValue("userId", BsonNull.Value).BsonType}");
+    Console.WriteLine($"UserId Value: '{doc.GetValue("userId", BsonNull.Value)}'");
+    Console.WriteLine($"StationId Type: {doc.GetValue("stationId", BsonNull.Value).BsonType}");
+    Console.WriteLine($"StationId Value: '{doc.GetValue("stationId", BsonNull.Value)}'");
+}
+
+Console.WriteLine("\n=== DELETING ALL BOOKINGS WITH INVALID IDS ===");
+var deleteFilter = Builders<BsonDocument>.Filter.Or(
+    Builders<BsonDocument>.Filter.Type("userId", BsonType.String),
+    Builders<BsonDocument>.Filter.Type("stationId", BsonType.String)
+);
+
+var result = await bookingsCollection.DeleteManyAsync(deleteFilter);
+Console.WriteLine($"Deleted {result.DeletedCount} bookings");
